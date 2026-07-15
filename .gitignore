@@ -6,6 +6,9 @@
 .env.*
 *.env
 
+# Runtime state — the channels registered via /setup
+channels.json
+
 # ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
