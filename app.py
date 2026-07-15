@@ -335,6 +335,20 @@ async def _before_refresh():
     await bot.wait_until_ready()
 
 
+async def _sync_guild(guild) -> bool:
+    """Copy the global commands into one guild and sync them there. Guild-scoped syncs
+    show up INSTANTLY, whereas a pure global sync can take up to an hour to propagate —
+    which is why we do both."""
+    try:
+        tree.copy_global_to(guild=guild)
+        await tree.sync(guild=guild)
+        return True
+    except Exception as e:
+        log.warning("guild sync failed for %s (%s): %s", getattr(guild, "name", "?"),
+                    getattr(guild, "id", "?"), e)
+        return False
+
+
 @bot.event
 async def on_ready():
     # Persistent view so the dropdown keeps working after a restart.
@@ -342,15 +356,32 @@ async def on_ready():
         bot.add_view(ClaimView())
     except Exception:
         pass
+
+    # Global sync (slow to appear, but covers servers we're added to later)…
     try:
         await tree.sync()
-        log.info("slash commands synced (/setup, /remove, /boards)")
     except Exception as e:
-        log.warning("command sync failed: %s", e)
+        log.warning("global command sync failed: %s", e)
+    # …plus an instant per-guild sync for every server we're already in.
+    synced = 0
+    for g in bot.guilds:
+        if await _sync_guild(g):
+            synced += 1
+    log.info("slash commands synced (/setup, /remove, /boards) — instantly in %d/%d guild(s)",
+             synced, len(bot.guilds))
+
     log.info("Satellite online as %s — %d guild(s), %d channel(s), refresh %d min.",
              bot.user, len(bot.guilds), len(_all_channels()), REFRESH_MIN)
     if not refresh_boards.is_running():
         refresh_boards.start()
+
+
+@bot.event
+async def on_guild_join(guild):
+    """A new partner added the bot — push commands to them immediately so they can
+    run /setup right away instead of waiting on global propagation."""
+    if await _sync_guild(guild):
+        log.info("joined %s (%s) — commands synced", guild.name, guild.id)
 
 
 def main():
