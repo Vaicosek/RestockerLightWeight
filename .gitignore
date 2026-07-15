@@ -1,0 +1,25 @@
+# ── Secrets — NEVER commit ───────────────────────────────────────────────────
+# This repo is PUBLIC. Every .env* file is ignored, including .env.example, because
+# it is used here as a real config file holding a live token + shared secret.
+# Config is documented in README.md instead — never put real values there.
+.env
+.env.*
+*.env
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+.local/
+venv/
+.venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# ── OS / editor noise ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
