@@ -776,11 +776,99 @@ async def auction_notifypanel_cmd(interaction: discord.Interaction):
     await interaction.response.send_message("✅ Notify panel posted.", ephemeral=True)
 
 
+# ── /setup_server: one-shot scaffold of the whole auction-house server (roles + a full
+#    category/channel layout) via the API. Idempotent — re-running skips what exists. ─────
+_SERVER_ROLES = [
+    # (name, colour, mentionable, is_staff)
+    ("🛡️ Staff", 0xE67E22, False, True),
+    ("🏡 Land Pings", 0x2ECC71, True, False),
+    ("📦 Item Pings", 0x3498DB, True, False),
+]
+_SERVER_LAYOUT = [
+    ("📋 Information", ["welcome", "rules", "announcements", "how-it-works"], True),
+    ("🔨 Auction House", ["auction-board", "list-your-item", "get-notified"], False),
+    ("🤝 Transfers", ["deals"], False),
+    ("💬 Community", ["off-topic"], False),
+]
+# channels members can read but not post in (the bot still can)
+_READONLY_CHANNELS = {"welcome", "rules", "announcements", "how-it-works", "auction-board", "get-notified"}
+
+
+@tree.command(name="setup_server",
+              description="(Managers) Build the full auction-house layout — all roles & channels")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def setup_server_cmd(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True, thinking=True)
+    guild = interaction.guild
+    me = guild.me if guild else None
+    if guild is None or me is None:
+        return await interaction.followup.send("Run this in the server.", ephemeral=True)
+    perms = me.guild_permissions
+    if not (perms.manage_channels and perms.manage_roles):
+        return await interaction.followup.send(
+            "❌ I need **Manage Channels** and **Manage Roles**. Re-invite me with Administrator "
+            "(or those two permissions) and run this again.", ephemeral=True)
+
+    created = {"roles": [], "categories": [], "channels": []}
+    roles = {}
+    try:
+        for name, colour, mentionable, is_staff in _SERVER_ROLES:
+            existing = discord.utils.get(guild.roles, name=name)
+            if existing:
+                roles[name] = existing
+                continue
+            p = discord.Permissions(manage_guild=True, manage_channels=True, manage_roles=True,
+                                    manage_messages=True, kick_members=True, ban_members=True,
+                                    mention_everyone=True) if is_staff else discord.Permissions.none()
+            r = await guild.create_role(name=name, colour=discord.Colour(colour),
+                                        permissions=p, mentionable=mentionable,
+                                        reason="V Tech auction house setup")
+            roles[name] = r
+            created["roles"].append(name)
+
+        for cat_name, chans, _info in _SERVER_LAYOUT:
+            cat = discord.utils.get(guild.categories, name=cat_name)
+            if cat is None:
+                cat = await guild.create_category(cat_name, reason="V Tech setup")
+                created["categories"].append(cat_name)
+            for ch in chans:
+                if discord.utils.get(guild.text_channels, name=ch):
+                    continue
+                overwrites = None
+                if ch in _READONLY_CHANNELS:
+                    overwrites = {
+                        guild.default_role: discord.PermissionOverwrite(send_messages=False, add_reactions=False),
+                        me: discord.PermissionOverwrite(send_messages=True, embed_links=True),
+                    }
+                await guild.create_text_channel(ch, category=cat, overwrites=overwrites, reason="V Tech setup")
+                created["channels"].append(ch)
+    except discord.Forbidden:
+        return await interaction.followup.send(
+            "⚠️ Ran out of permission partway — make sure my role is near the top and I have Administrator.",
+            ephemeral=True)
+    except Exception as e:
+        log.warning("setup_server failed: %s", e)
+        return await interaction.followup.send(f"⚠️ Setup hit an error: `{type(e).__name__}: {e}`", ephemeral=True)
+
+    land_id = roles.get("🏡 Land Pings")
+    item_id = roles.get("📦 Item Pings")
+    msg = ("✅ **Auction house server built.**\n"
+           f"Roles created: {', '.join(created['roles']) or '(all existed)'}\n"
+           f"Categories: {len(created['categories'])} · Channels: {len(created['channels'])}\n\n"
+           "**Put these in this bot's `.env`, then restart me:**\n"
+           f"```\nSAT_LAND_PING_ROLE={land_id.id if land_id else ''}\n"
+           f"SAT_ITEM_PING_ROLE={item_id.id if item_id else ''}\n```\n"
+           "Then run `/setup` in **#auction-board** to post the live board, and "
+           "`/auction_notifypanel` in **#get-notified** for the opt-in ping buttons.")
+    await interaction.followup.send(msg[:1900], ephemeral=True)
+
+
 @sell_cmd.error
 @cancel_cmd.error
 @auction_close_cmd.error
 @auction_config_cmd.error
 @auction_notifypanel_cmd.error
+@setup_server_cmd.error
 async def _auction_err(interaction: discord.Interaction, error):
     if isinstance(error, app_commands.MissingPermissions):
         msg = "⛔ You need the **Manage Server** permission to do that."
