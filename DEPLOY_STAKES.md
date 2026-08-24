@@ -1,8 +1,8 @@
-# V Tech Lands & Auctions — how it works + deploy
+# Abex Stakes — how it works + deploy
 
 An auction house for **land and items**, built to beat the competitors on one thing:
 it's dead simple. The commands live on this branded satellite bot; all the money,
-valuation, escrow, and loyalty live in the main Restocker bot (V Helper) — reached over
+valuation, escrow, and loyalty live in the Abex Tech core bot (Abex Tech) — reached over
 the network API. **Main Restocker shows no auction commands at all.**
 
 ## The whole seller flow is one command (on this bot)
@@ -30,11 +30,11 @@ Managers (Manage Server): `/auction_close`, `/auction_config`, `/auction_notifyp
 
 ## Loyalty (the moat the competitors can't match)
 
-Every completed sale awards V Tech loyalty points to **both** buyer and seller
+Every completed sale awards Abex Tech loyalty points to **both** buyer and seller
 (`10 + 0.0001 × price`), written to the main bot's existing loyalty system — so it shows
 up in `/loyalty`. Can't be farmed; only real sales pay out. And a seller's **commission
 drops automatically by loyalty tier** (1k pts → 0.5% off … 20k → 2.5% off, floor 1%) —
-a real "discount at V Tech" with no coupon to redeem.
+a real "discount at Abex Tech" with no coupon to redeem.
 
 ## Get-notified roles (opt-in)
 
@@ -49,16 +49,16 @@ role (click again to opt out). When a new listing of that kind is posted, the bo
 
 ## 1. Create the Discord bot (yours to do — I can't touch the token)
 
-1. https://discord.com/developers/applications → **New Application** → `V Tech Lands & Auctions` → Create.
+1. https://discord.com/developers/applications → **New Application** → `Abex Stakes` → Create.
 2. **Bot** tab → set avatar/username. Leave all three Privileged Intents **OFF**.
 3. **Reset Token** → copy into this bot's `.env` as `SAT_BOT_TOKEN`. Never commit it.
 4. **OAuth2 → URL Generator** → scopes `bot` + `applications.commands`; permissions
    `Send Messages` + `Embed Links` + `Use Application Commands` + `Manage Roles`
    (Manage Roles is needed for the self-assign notify panel) → invite the bot.
 
-## 2. Turn the API on in V Helper (once)
+## 2. Turn the API on in Abex Tech (once)
 
-In RestockerMain's `.env`, set `NETWORK_SHARED_SECRET` to a long random value
+In Abex Tech core's `.env`, set `NETWORK_SHARED_SECRET` to a long random value
 (`python -c "import secrets;print(secrets.token_urlsafe(32))"`) and restart. All the land
 endpoints (`create`, `bid`, `buy`, `cancel`, `close`, `config`, `listings`) are already
 registered.
@@ -66,7 +66,7 @@ registered.
 ## 3. Configure + run the satellite
 
 Copy `.env.land.example` → `.env`, fill in `SAT_FEATURES=land`, the bot token, your
-dashboard URL, the **same** `NETWORK_SHARED_SECRET` as V Helper, and (optionally) the
+dashboard URL, the **same** `NETWORK_SHARED_SECRET` as Abex Tech, and (optionally) the
 notify role IDs. Then:
 
 ```bash

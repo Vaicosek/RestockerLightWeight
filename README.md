@@ -1,6 +1,6 @@
-# RestockerLightweight — satellite order-relay bot
+# Abex Stakes — satellite order-relay bot
 
-A tiny Discord bot that relays restock orders from the main **V Helper** bot into
+A tiny Discord bot that relays restock orders from the main **Abex Tech** bot into
 partner servers, and relays claims back.
 
 You add ("trust") this bot into each partner server. Because it is *present* in those
@@ -8,15 +8,15 @@ servers, its **Claim** dropdown actually works there — a click hands the main 
 clicker's real Discord ID instantly. (A mirrored copy of another bot's message can't
 do that: a Discord component only routes to the bot that posted it.)
 
-It carries **no** market/DB/dashboard logic — everything authoritative lives in V Helper,
+It carries **no** market/DB/dashboard logic — everything authoritative lives in Abex Tech,
 which is what keeps it light and safe to place in servers you don't fully control.
 
 ## How it works
 
-1. Polls V Helper's `GET /api/network/orders` for the current open orders.
+1. Polls Abex Tech's `GET /api/network/orders` for the current open orders.
 2. Posts a single order board per configured channel (edited in place, not spammed),
    with a **"Claim an order"** dropdown.
-3. On claim → `POST /api/network/claim` with the worker's Discord ID → V Helper checks
+3. On claim → `POST /api/network/claim` with the worker's Discord ID → Abex Tech checks
    the order is still open, logs it, and pings the home worker channel.
 4. The bot then DMs the worker an invite to the home server to finish their ticket.
 
@@ -32,8 +32,8 @@ Create a `.env` file next to `app.py` (it is gitignored — **never commit real 
 | Variable | What it is |
 | --- | --- |
 | `SAT_BOT_TOKEN` | This bot's own token (Discord Developer Portal → your app → Bot). |
-| `VHELPER_API_BASE` | The main V Helper web server, e.g. `https://your-dashboard.example.com`. |
-| `NETWORK_SHARED_SECRET` | Must match `NETWORK_SHARED_SECRET` in V Helper's `.env`. Generate: `python -c "import secrets;print(secrets.token_urlsafe(32))"` |
+| `VHELPER_API_BASE` | The main Abex Tech web server, e.g. `https://your-dashboard.example.com`. |
+| `NETWORK_SHARED_SECRET` | Must match `NETWORK_SHARED_SECRET` in Abex Tech's `.env`. Generate: `python -c "import secrets;print(secrets.token_urlsafe(32))"` |
 | `SAT_CHANNELS` | Channel IDs to post the board in — one per partner server, comma-separated. |
 | `HOME_INVITE` | Invite to your home server, DM'd to a worker after they claim. |
 | `SAT_REFRESH_MIN` | Board refresh interval in minutes (min 2, default 10). |
